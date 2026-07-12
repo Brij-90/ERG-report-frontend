@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -460,6 +461,24 @@ body {
 </style>
 </head>
 <body>
+
+<!-- LOGIN GATE -->
+<div id="login-gate" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#F1651B 0%,#E3530F 45%,#B03020 100%);display:flex;align-items:center;justify-content:center;font-family:'Mulish',Arial,sans-serif;padding:16px;box-sizing:border-box;">
+  <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:40px 36px;box-shadow:0 24px 60px rgba(0,0,0,0.35);text-align:center;">
+    <img src="https://www.assets.icicibank.com/campaigns/mailers-v3/marketing/emailcommonelements/images/logo.jpg" alt="ICICI Bank" onerror="this.style.display='none'" style="height:38px;display:inline-block;margin-bottom:20px;border-radius:4px;" />
+    <div style="font-size:19px;font-weight:900;color:#1A2B4A;margin-bottom:10px;">Report Generator</div>
+    <div style="font-size:14px;font-weight:800;color:#1A2B4A;margin-bottom:26px;">🔒&nbsp; Sign in to continue</div>
+    <div style="text-align:left;">
+      <label style="font-size:10.5px;font-weight:800;letter-spacing:0.4px;color:#1A2B4A;display:block;margin-bottom:6px;">USERNAME</label>
+      <input type="text" id="login-userid" placeholder="e.g. RM10234" autocomplete="username" style="width:100%;padding:11px 14px;border:1.5px solid #E0DBD5;border-radius:8px;font-family:inherit;font-size:13px;color:#1A2B4A;outline:none;margin-bottom:16px;box-sizing:border-box;" />
+      <label style="font-size:10.5px;font-weight:800;letter-spacing:0.4px;color:#1A2B4A;display:block;margin-bottom:6px;">PASSWORD</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" style="width:100%;padding:11px 14px;border:1.5px solid #E0DBD5;border-radius:8px;font-family:inherit;font-size:13px;color:#1A2B4A;outline:none;margin-bottom:16px;box-sizing:border-box;" />
+    </div>
+    <div id="login-error" style="display:none;text-align:left;font-size:11px;color:#B03020;background:#FDEDEC;padding:8px 12px;border-radius:6px;margin-bottom:16px;"></div>
+    <button id="login-btn" onclick="doGateLogin()" style="width:100%;padding:13px;background:#E3530F;color:#fff;border:none;border-radius:9px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;">Login</button>
+    <a href="mailto:erg@icicibank.com?subject=Trouble%20logging%20in%20-%20Report%20Generator" style="display:block;margin-top:16px;font-size:11.5px;color:#1A2B4A;text-decoration:none;">Trouble logging in?</a>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1819,6 +1838,58 @@ body {
 
 <script>
 const BACKEND_URL = "https://mms-backend-djkg.onrender.com";
+
+// ─── LOGIN GATE ─────────────────────────────────────────────────────────────
+let sessionToken = localStorage.getItem("erg_session_token");
+
+if (sessionToken) {
+  document.getElementById("login-gate").style.display = "none";
+}
+
+async function doGateLogin() {
+  const idInput = document.getElementById("login-userid");
+  const pwInput = document.getElementById("login-password");
+  const errEl = document.getElementById("login-error");
+  const btn = document.getElementById("login-btn");
+  const userId = idInput.value.trim();
+  const password = pwInput.value;
+  errEl.style.display = "none";
+  if (!userId || !password) { errEl.textContent = "Please enter your Username and password."; errEl.style.display = "block"; return; }
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try {
+    const res = await fetch(BACKEND_URL + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.token) throw new Error(data.error || "Invalid Username or password.");
+    sessionToken = data.token;
+    localStorage.setItem("erg_session_token", sessionToken);
+    localStorage.setItem("erg_session_role", data.role || "user");
+    localStorage.setItem("erg_session_userid", data.userId || userId);
+    document.getElementById("login-gate").style.display = "none";
+  } catch (err) {
+    errEl.textContent = err.message || "Sign in failed. Please try again.";
+    errEl.style.display = "block";
+  }
+  btn.disabled = false; btn.textContent = "Login";
+}
+
+["login-userid", "login-password"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("keydown", e => { if (e.key === "Enter") doGateLogin(); });
+});
+
+function requireLoginAgain(message) {
+  sessionToken = null;
+  localStorage.removeItem("erg_session_token");
+  localStorage.removeItem("erg_session_role");
+  document.getElementById("login-gate").style.display = "flex";
+  const errEl = document.getElementById("login-error");
+  errEl.textContent = message || "Your session expired. Please sign in again.";
+  errEl.style.display = "block";
+}
 let currentFile = null;
 let currentHTML = "";
 let currentReportType = "mms";
@@ -1921,8 +1992,15 @@ async function generate() {
 
     const res = await fetch(BACKEND_URL + "/api/generate", {
       method: "POST",
+      headers: { "x-session-token": sessionToken || "" },
       body: formData
     });
+
+    if (res.status === 401) {
+      showUpload();
+      requireLoginAgain();
+      return;
+    }
 
     const data = await res.json();
 
