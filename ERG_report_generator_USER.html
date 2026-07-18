@@ -1902,7 +1902,12 @@ let currentReportType = "mms";
 // does not protect anything sensitive (the backend/API key are untouched
 // either way).
 const isAdminMode = false; // User file — INR and Fixed Income are not live yet
-const LOCKED_REPORT_TYPES = ["inr", "fi"];
+// Demo switch: set to true to unlock INR + Fixed Income for everyone using
+// this file (e.g. for a demo). Set back to false to re-lock them — no
+// backend or server changes needed either way, this only controls which
+// buttons are clickable in the browser.
+const DEMO_UNLOCK_ALL = true;
+const LOCKED_REPORT_TYPES = DEMO_UNLOCK_ALL ? [] : ["inr", "fi"];
 
 function showComingSoonToast() {
   let toast = document.getElementById("coming-soon-toast");
