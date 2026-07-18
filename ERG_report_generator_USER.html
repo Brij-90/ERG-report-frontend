@@ -111,6 +111,14 @@ body {
   cursor: pointer; font-family: inherit; display: none;
 }
 .reset-btn:hover { border-color: #E3530F; color: #E3530F; background: rgba(227,83,15,0.05); }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.logout-btn {
+  padding: 8px 16px; background: transparent;
+  border: 1.5px solid #D5CBC3; border-radius: 6px;
+  font-size: 12px; font-weight: 600; color: #8A7E76;
+  cursor: pointer; font-family: inherit;
+}
+.logout-btn:hover { border-color: #B03020; color: #B03020; background: rgba(176,48,32,0.05); }
 .content { flex: 1; overflow: auto; padding: 32px; }
 
 /* UPLOAD PANEL */
@@ -463,8 +471,8 @@ body {
 
 <!-- LOGIN GATE -->
 <div id="login-gate" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#F1651B 0%,#E3530F 45%,#B03020 100%);display:flex;align-items:center;justify-content:center;font-family:'Mulish',Arial,sans-serif;padding:16px;box-sizing:border-box;">
-  <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:40px 36px;box-shadow:0 24px 60px rgba(0,0,0,0.35);text-align:center;">
-    <img src="https://www.assets.icicibank.com/campaigns/mailers-v3/marketing/emailcommonelements/images/logo.jpg" alt="ICICI Bank" onerror="this.style.display='none'" style="height:38px;display:inline-block;margin-bottom:20px;border-radius:4px;" />
+  <div style="width:100%;max-width:380px;box-sizing:border-box;background:#fff;border-radius:16px;padding:40px 36px;box-shadow:0 24px 60px rgba(0,0,0,0.35);text-align:center;display:flex;flex-direction:column;align-items:center;">
+    <img src="https://www.assets.icicibank.com/campaigns/mailers-v3/marketing/emailcommonelements/images/logo.jpg" alt="ICICI Bank" onerror="this.style.display='none'" style="height:38px;width:auto;max-width:100%;display:block;margin:0 auto 20px;border-radius:4px;" />
     <div style="font-size:19px;font-weight:900;color:#1A2B4A;margin-bottom:10px;">Report Generator</div>
     <div style="font-size:14px;font-weight:800;color:#1A2B4A;margin-bottom:26px;">🔒&nbsp; Sign in to continue</div>
     <div style="text-align:left;">
@@ -541,7 +549,10 @@ body {
       <div class="top-title" id="top-title">Upload Today's MMS PDF</div>
       <div class="top-sub" id="top-sub">No file selected</div>
     </div>
-    <button class="reset-btn" id="reset-btn" onclick="resetApp()">↺ New Report</button>
+    <div class="topbar-actions">
+      <button class="reset-btn" id="reset-btn" onclick="resetApp()">↺ New Report</button>
+      <button class="logout-btn" id="logout-btn" onclick="doLogout()">⏻ Logout</button>
+    </div>
   </div>
 
   <div class="content">
@@ -565,36 +576,12 @@ body {
         ⚙ &nbsp; Generate HTML Email
       </button>
 
-      <div class="info-cards">
-        <div class="info-card">
-          <div class="info-card-icon">🔒</div>
-          <div class="info-card-title">Secure</div>
-          <div class="info-card-desc">PDF is processed and immediately discarded. Nothing is stored.</div>
-        </div>
-        <div class="info-card">
-          <div class="info-card-icon">⚡</div>
-          <div class="info-card-title">Fast</div>
-          <div class="info-card-desc">Your PDF is analyzed and full HTML is produced in ~20 seconds.</div>
-        </div>
-        <div class="info-card">
-          <div class="info-card-icon">✉</div>
-          <div class="info-card-title">Gmail-safe</div>
-          <div class="info-card-desc">Output uses QuickChart.io URLs — no SVG or base64 stripped by Gmail.</div>
-        </div>
-      </div>
     </div>
 
     <!-- LOADING -->
     <div class="loading-panel" id="loading-panel">
       <div class="spinner"></div>
       <div class="loading-title">Processing your PDF…</div>
-      <div class="loading-steps">
-        <div class="loading-step"><span class="loading-dot"></span>Extracting market data and dates</div>
-        <div class="loading-step"><span class="loading-dot"></span>Calculating pill values and change signs</div>
-        <div class="loading-step"><span class="loading-dot"></span>Building QuickChart.io chart URL</div>
-        <div class="loading-step"><span class="loading-dot"></span>Writing thematic drivers</div>
-        <div class="loading-step"><span class="loading-dot"></span>Assembling final HTML email</div>
-      </div>
       <div class="loading-note">This usually takes 15–30 seconds</div>
     </div>
 
@@ -1888,6 +1875,20 @@ function requireLoginAgain(message) {
   const errEl = document.getElementById("login-error");
   errEl.textContent = message || "Your session expired. Please sign in again.";
   errEl.style.display = "block";
+}
+
+function doLogout() {
+  sessionToken = null;
+  localStorage.removeItem("erg_session_token");
+  localStorage.removeItem("erg_session_role");
+  localStorage.removeItem("erg_session_userid");
+  const idInput = document.getElementById("login-userid");
+  const pwInput = document.getElementById("login-password");
+  const errEl = document.getElementById("login-error");
+  if (idInput) idInput.value = "";
+  if (pwInput) pwInput.value = "";
+  if (errEl) errEl.style.display = "none";
+  document.getElementById("login-gate").style.display = "flex";
 }
 let currentFile = null;
 let currentHTML = "";
